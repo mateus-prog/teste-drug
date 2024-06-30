@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.8"
 services:
     app:
         build:
@@ -8,34 +8,31 @@ services:
             context: ./
             dockerfile: Dockerfile
         image: laravel
-        container_name: ${APP_NAME}-app
+        container_name: laravel
         restart: unless-stopped
         working_dir: /var/www/
         volumes:
             - ./:/var/www
         networks:
-            - laravel
+            - backend
     db:
-        image: mysql:8.0
-        container_name: ${APP_NAME}-db
+        image: oraclelinux:9-slim
+        container_name: mysql
         restart: unless-stopped
+        tty: true
         environment:
             MYSQL_DATABASE: ${DB_DATABASE}
             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-            MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-            MYSQL_PASSWORD: ${DB_PASSWORD}
-            MYSQL_USER: ${DB_USERNAME}
-            SERVICE_TAGS: dev
-            SERVICE_NAME: mysql
-            MYSQL_ROOT_HOST: "%"
         ports:
             - "${DB_EXTERNAL_PORT}:3306"
+        volumes:
+            - ./docker-compose/mysql/:/var/lib/mysql/
         networks:
-            - laravel
+            - backend
 
     nginx:
-        image: nginx:1.17-alpine
-        container_name: ${APP_NAME}-nginx
+        image: nginx:latest
+        container_name: nginx
         restart: unless-stopped
         ports:
             - 8000:80
@@ -43,7 +40,35 @@ services:
             - ./:/var/www
             - ./docker-compose/nginx:/etc/nginx/conf.d
         networks:
-            - laravel
+            - backend
+    #gitlab:
+        #image: gitlab/gitlab-ce:latest
+        #container_name: gitlab
+        #restart: unless-stopped
+        #ports:
+        #    - 8080:80
+        #    - 8443:443
+        #    - 2222:22
+        #volumes:
+        #    - ./docker-compose/gitlab/config:/etc/gitlab
+        #    - ./docker-compose/gitlab/logs:/var/log/gitlab
+        #    - ./docker-compose/gitlab/data:/var/opt/gitlab
+        #networks:
+        #    - backend
+    
+    #sonarqube:
+        #image: sonarqube:latest
+        #container_name: sonarqube
+        #restart: unless-stopped
+        #ports:
+        #    - 9001:9000
+        #volumes:
+        #    - ./docker-compose/sonarqube/conf:/opt/sonarqube/conf
+        #    - ./docker-compose/sonarqube/data:/opt/sonarqube/data
+        #    - ./docker-compose/sonarqube/logs:/opt/sonarqube/logs
+        #    - ./docker-compose/sonarqube/extensions:/opt/sonarqube/extensions
+
 networks:
-    laravel:
+    backend:
         driver: bridge
+        name: backend

@@ -1,8 +1,10 @@
-FROM php:8.1-fpm
+FROM php:8.2-cli AS builder
 
 # Arguments defined in docker-compose.yml
-ARG user
-ARG uid
+#ARG user
+#ARG uid
+
+WORKDIR /var/www
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -13,10 +15,6 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip
-
-# Install Node
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash -
-RUN apt-get install -y nodejs
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -30,15 +28,29 @@ RUN pecl install xdebug \
     && echo "xdebug.mode=coverage" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.client_host = host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+FROM php:8.2-fpm-alpine
 
-# Create system user to run Composer and Artisan Commands
-RUN useradd -G www-data,root -u $uid -d /home/$user $user
-RUN mkdir -p /home/$user/.composer && \
-    chown -R $user:$user /home/$user
+COPY --from=builder /var/www /var/www
 
-# Set working directory
+RUN chown -R www-data:www-data /var/www
+#RUN useradd -G www-data,root -u $uid -d /home/$user $user
+#RUN mkdir -p /home/$user/.composer && \
+    #chown -R $user:$user /home/$user
+
 WORKDIR /var/www
 
-USER $user
+EXPOSE 9000
+CMD [ "php-fpm" ]
+
+# Get latest Composer
+#COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Create system user to run Composer and Artisan Commands
+#RUN useradd -G www-data,root -u $uid -d /home/$user $user
+#RUN mkdir -p /home/$user/.composer && \
+    #chown -R $user:$user /home/$user
+
+# Set working directory
+#WORKDIR /var/www
+
+#USER $user
